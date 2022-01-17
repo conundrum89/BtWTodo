@@ -151,6 +151,11 @@ local Colors = {
 	ARTIFACT = ARTIFACT_GOLD_COLOR,
 	HEIRLOOM = HEIRLOOM_BLUE_COLOR,
 	WOWTOKEN = HEIRLOOM_BLUE_COLOR,
+
+    KYRIAN = CreateColor(0.408, 0.8, 0.937, 1),
+    NECROLORD = CreateColor(0.251, 0.749, 0.251, 1),
+    NIGHTFAE = CreateColor(0.639, 0.188, 0.788, 1),
+    VENTHYR = CreateColor(1, 0.251, 0.251, 1),
 }
 local Images = {
     PADDING = [[|T982414:0|t]],
