@@ -437,6 +437,64 @@ do
 
 		return data
 	end)
+	local holidayEventFromTexture = {
+		[235461] = "hallow",
+		[235462] = "hallow",
+		[235460] = "hallow",
+		[235470] = "lunar",
+		[235471] = "lunar",
+		[235469] = "lunar",
+		[235473] = "midsummer",
+		[235474] = "midsummer",
+		[235472] = "midsummer",
+		[235447] = "darkmoon",
+	}
+	Internal.RegisterCustomStateFunction("GetActiveHolidayEvents", function ()
+		-- AUS TIME ZONE CONVERSION HARDCODED!
+		local serverTime = C_DateAndTime.GetServerTimeLocal()
+		serverTime = serverTime - (60 * 60 * 18) -- convert back 18 hours to get from ~AEST to ~PST
+		local curDate = C_DateAndTime.GetCalendarTimeFromEpoch(serverTime * 1e6) -- C_DateAndTime.GetCurrentCalendarTime()
+		local month, day, year = curDate.month, curDate.monthDay, curDate.year
+		local curHour, curMinute = curDate.hour, curDate.minute
+
+		local calDate = C_Calendar.GetMonthInfo()
+		local monthOffset = -12 * (curDate.year - calDate.year) + calDate.month - curDate.month -- convert difference between calendar and the realm time
+
+		if monthOffset ~= 0 then
+			return -- we only care about the current events, so we need the view to be on the current month (otherwise we unload the ongoing events if we change the month manually...)
+		end
+
+		local numEvents = C_Calendar.GetNumDayEvents(monthOffset, day)
+		local loadedEvents, numLoaded, numLoadedRightNow = {}, 0, 0
+
+		local result = {}
+
+		for i = 1, numEvents do
+			local event = C_Calendar.GetDayEvent(monthOffset, day, i)
+
+			if event and event.calendarType == "HOLIDAY" then
+				local ongoing = event.sequenceType == "ONGOING" -- or event.sequenceType == "INFO"
+				local moduleName = holidayEventFromTexture[event.iconTexture]
+
+				if event.sequenceType == "START" then
+					ongoing = curHour >= event.startTime.hour and (curHour > event.startTime.hour or curMinute >= event.startTime.minute)
+				elseif event.sequenceType == "END" then
+					ongoing = curHour <= event.endTime.hour and (curHour < event.endTime.hour or curMinute <= event.endTime.minute)
+					-- TODO: linger for 3 hours extra just in case event is active but not in the calendar
+					if not ongoing then
+						local paddingHour = max(0, curHour - 3)
+						ongoing = paddingHour <= event.endTime.hour and (paddingHour < event.endTime.hour or curMinute <= event.endTime.minute)
+					end
+				end
+
+				if moduleName and ongoing then
+					result[moduleName] = true
+				end
+			end
+		end
+
+		return result
+	end)
 
 	Internal.RegisterEvent("HALF_WEEKLY_RESET", function (event, isWeekly)
 		Internal.WipeSharedData(SharedDataID)
